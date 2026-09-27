@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Melody — Music Chatbot</title>
+<style>
+  :root {
+    --bg: #0e0f1a;
+    --bg-panel: #15172a;
+    --bg-input: #1c1f36;
+    --text: #eef0fa;
+    --muted: #8a8fb3;
+    --accent: #7c5cff;
+    --accent-2: #2fe6c9;
+    --bubble-user: linear-gradient(135deg, #7c5cff, #5a3cf0);
+    --bubble-bot: #1e2140;
+    --border: #2a2d4d;
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(124,92,255,0.18), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(47,230,201,0.14), transparent 45%);
+    background-attachment: fixed;
+  }
+
+  .app {
+    max-width: 760px;
+    margin: 0 auto;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+  }
+
+  .eq-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .eq-icon span {
+    display: block;
+    width: 6px;
+    background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    border-radius: 3px;
+    animation: eq 1.1s ease-in-out infinite;
+  }
+  .eq-icon span:nth-child(1) { height: 18px; animation-delay: 0s; }
+  .eq-icon span:nth-child(2) { height: 34px; animation-delay: 0.2s; }
+  .eq-icon span:nth-child(3) { height: 26px; animation-delay: 0.4s; }
+  .eq-icon span:nth-child(4) { height: 40px; animation-delay: 0.1s; }
+  .eq-icon span:nth-child(5) { height: 14px; animation-delay: 0.3s; }
+
+  @keyframes eq {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1); }
+  }
+
+  header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+
+  header p {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ---------- Chat area ---------- */
+  .chat-wrapper {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-panel);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  #chat-area::-webkit-scrollbar { width: 10px; }
+  #chat-area::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+  }
+  #chat-area::-webkit-scrollbar-track { background: transparent; }
+
+  .msg-row { display: flex; }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-row.bot { justify-content: flex-start; }
+
+  .bubble {
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    line-height: 1.45;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border: 1px solid var(--border);
+  }
+
+  .msg-row.user .bubble {
+    background: var(--bubble-user);
+    color: #fff;
+    border: none;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-row.bot .bubble {
+    background: var(--bubble-bot);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+
+  .bot-label {
+    font-size: 0.72rem;
+    color: var(--accent-2);
+    font-weight: 700;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .typing {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px 2px;
+  }
+  .typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Scroll-to-bottom button */
+  #scroll-down-btn {
+    position: absolute;
+    right: 18px;
+    bottom: 90px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    border: none;
+    color: #0e0f1a;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(124,92,255,0.45);
+    transition: transform 0.15s ease, opacity 0.2s ease;
+  }
+  #scroll-down-btn:hover { transform: translateY(-2px); }
+  #scroll-down-btn.visible { display: flex; }
+
+  /* ---------- Input area ---------- */
+  .input-bar {
+    display: flex;
+    gap: 10px;
+    padding: 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+
+  #user-input {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    max-height: 110px;
+    outline: none;
+    background: var(--bg-input);
+    color: var(--text);
+    transition: border-color 0.15s ease;
+  }
+  #user-input::placeholder { color: var(--muted); }
+  #user-input:focus { border-color: var(--accent); }
+
+  #send-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0e0f1a;
+    border: none;
+    border-radius: 14px;
+    padding: 0 22px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+  #send-btn:hover { transform: translateY(-1px); }
+  #send-btn:active { transform: translateY(1px); }
+  #send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding-top: 10px;
+  }
+
+  @media (max-width: 500px) {
+    .app { padding: 10px; }
+    header h1 { font-size: 1.05rem; }
+    .bubble { max-width: 86%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="eq-icon">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div>
+      <h1>Melody — your Music Chatbot</h1>
+      <p>Ask me about theory, instruments, production &amp; more.</p>
+    </div>
+  </header>
+
+  <div class="chat-wrapper">
+    <div id="chat-area"></div>
+    <button id="scroll-down-btn" title="Jump to latest message">↓</button>
+
+    <div class="input-bar">
+      <textarea id="user-input" rows="1" placeholder="Ask a music question... e.g. How do I build a minor chord?"></textarea>
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <footer>Melody only answers music related questions.</footer>
+</div>
+
+<script>
+  const chatArea = document.getElementById('chat-area');
+  const userInput = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const scrollDownBtn = document.getElementById('scroll-down-btn');
+
+  let history = [];
+  let isNearBottom = true;
+
+  function isScrolledNearBottom() {
+    const threshold = 60;
+    return chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < threshold;
+  }
+
+  function scrollToBottom(smooth = true) {
+    chatArea.scrollTo({
+      top: chatArea.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  }
+
+  chatArea.addEventListener('scroll', () => {
+    isNearBottom = isScrolledNearBottom();
+    scrollDownBtn.classList.toggle('visible', !isNearBottom);
+  });
+
+  scrollDownBtn.addEventListener('click', () => {
+    scrollToBottom(true);
+  });
+
+  function addMessage(role, text) {
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + (role === 'user' ? 'user' : 'bot');
+
+    const bubbleWrap = document.createElement('div');
+
+    if (role === 'bot') {
+      const label = document.createElement('div');
+      label.className = 'bot-label';
+      label.textContent = 'Melody';
+      bubbleWrap.appendChild(label);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    bubbleWrap.appendChild(bubble);
+
+    row.appendChild(bubbleWrap);
+    chatArea.appendChild(row);
+
+    if (isNearBottom) {
+      scrollToBottom(true);
+    } else {
+      scrollDownBtn.classList.add('visible');
+    }
+    return row;
+  }
+
+  function addTypingIndicator() {
+    const row = document.createElement('div');
+    row.className = 'msg-row bot';
+    row.id = 'typing-row';
+
+    const wrap = document.createElement('div');
+    const label = document.createElement('div');
+    label.className = 'bot-label';
+    label.textContent = 'Melody';
+    wrap.appendChild(label);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+    wrap.appendChild(bubble);
+
+    row.appendChild(wrap);
+    chatArea.appendChild(row);
+    if (isNearBottom) scrollToBottom(true);
+  }
+
+  function removeTypingIndicator() {
+    const row = document.getElementById('typing-row');
+    if (row) row.remove();
+  }
+
+  async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    addMessage('user', text);
+    history.push({ role: 'user', text: text });
+    userInput.value = '';
+    userInput.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    addTypingIndicator();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) })
+      });
+
+      const data = await res.json();
+      removeTypingIndicator();
+
+      if (!res.ok) {
+        addMessage('bot', data.error || 'Something went wrong. Please try again.');
+      } else {
+        addMessage('bot', data.reply);
+        history.push({ role: 'model', text: data.reply });
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage('bot', 'Network error — please check your connection and try again.');
+    } finally {
+      sendBtn.disabled = false;
+      userInput.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  userInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  userInput.addEventListener('input', () => {
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 110) + 'px';
+  });
+
+  // Welcome message
+  window.addEventListener('DOMContentLoaded', () => {
+    addMessage('bot', "Hey! I'm Melody 🎵 — ask me anything about music: theory, instruments, songwriting, production, or practice tips!");
+  });
+</script>
+</body>
+</html>
